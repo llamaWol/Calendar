@@ -5,7 +5,7 @@ import toml
 import uuid
 import getch
 
-from assistants import Msg, valid
+from assistants import Msg, valid, time, date, truncate
 
 from datetime import datetime, timedelta
 
@@ -20,8 +20,7 @@ yesterday = today - timedelta(days=1)
 tomorrow = today + timedelta(days=1)
 
 def evnew(day, err = None):
-	if err:
-		Msg.err(err)
+	if err: Msg.err(err)
 
 	name = Msg.ask("What calendar does this event belong to?").lower()
 	if name == "": return evnew(day, "Give a calendar for the event")
@@ -82,6 +81,7 @@ def evnew(day, err = None):
 			# If pressed key is Q, quit program
 			elif key == "q":
 				sys.exit()
+		# Exit peacefully on KeyboardInterrupt
 		except KeyboardInterrupt:
 			sys.exit()
 
@@ -97,12 +97,12 @@ def evedit(day):
 			# If pressed key is Q, quit program
 			elif key == "q":
 				sys.exit()
+		# Exit peacefully on KeyboardInterrupt
 		except KeyboardInterrupt:
 			sys.exit()
 
 def evremove(day, err = None):
-	if err:
-		Msg.err(err)
+	if err: Msg.err(err)
 
 	req = Msg.ask("What's the id of the event?")
 	if not valid(req, "id"): return evremove(day, f"{req} is not a valid id")
@@ -128,10 +128,70 @@ def evremove(day, err = None):
 			# If pressed key is Q, quit program
 			elif key == "q":
 				sys.exit()
+		# Exit peacefully on KeyboardInterrupt
 		except KeyboardInterrupt:
 			sys.exit()
 
-def work(day, month = None):
+def work(init):
+	day, month, year = init.split("/")
+	startdate, enddate = None, None
+
+	# If day is past 12, use current and next month
+	if int(day) > 12:
+		startmonth = int(month)
+		endmonth = 1 if int(month) + 1 == 13 else int(month) + 1
+		if endmonth == 1:
+			enddate = date(f"12/{endmonth}/{int(year) + 1}")
+	# If day is before 12, use current and last month
+	else:
+		startmonth = 12 if int(month) - 1 == 0 else int(month) - 1 
+		endmonth = int(month)
+		if endmonth == 1:
+			startdate = date(f"13/{startmonth}/{int(year) - 1}")
+
+	# Set start- and enddate if they're not set already
+	if not startdate:
+		startdate = date(f"13/{startmonth}/{year}")
+	if not enddate:
+		enddate = date(f"12/{endmonth}/{year}")
+
+	total = 0
+	days_worked = 0 
+	for event in calendar["work"]:
+		if event == "colour": continue
+		compare = date(calendar["work"][event]["date"])
+
+		if startdate <= compare <= enddate:
+			days_worked += 1
+			breaks = 60
+
+			# Get start- and endtime of work
+			starttime = time(calendar["work"][event]["from"])
+			endtime = time(calendar["work"][event]["to"])
+
+			# Check if you haven't had breaks
+			if starttime >= time("10:00"):
+				breaks -= 15
+			if starttime >= time("12:00"):
+				breaks -= 30
+			if starttime >= time("15:00"):
+				breaks -= 15
+
+			if endtime <= time("15:00"):
+				breaks -= 15
+			if endtime <= time("13:00"):
+				breaks -= 30
+
+			hrs, mins, _ = str(endtime - starttime - timedelta(minutes=breaks)).split(":")
+			# Convert minutes to decimal
+			mins = truncate(int(mins) * 0.01675, 2)
+
+			print(f"{calendar['work'][event]['date']}\t\t-> {int(hrs) + mins}")
+			total += int(hrs) + mins
+
+	print(f"\nTotal amount of hours\t-> {total}")
+	print(f"Days worked\t\t-> {days_worked}")
+	print(f"Base salary\t\t-> {truncate(total * 3.9, 2)}")
 
 	Msg.say("b - back   q - quit")
 	while True:
@@ -139,10 +199,11 @@ def work(day, month = None):
 			key = getch.getch()
 			# If pressed key is B, go back to main function
 			if key == "b":
-				return main(day)
+				return main(init)
 			# If pressed key is Q, quit program
 			elif key == "q":
 				sys.exit()
+		# Exit peacefully on KeyboardInterrupt
 		except KeyboardInterrupt:
 			sys.exit()
 
@@ -216,16 +277,20 @@ def main(day = None):
 			# If pressed key is Q, quit program
 			elif key == "q":
 				sys.exit()
+		# Exit peacefully on KeyboardInterrupt
 		except KeyboardInterrupt:
 			sys.exit()
 
 if __name__ == '__main__':
 	try:
 		main()
+	# Exit peacefully on KeyboardInterrupt
 	except KeyboardInterrupt:
 		sys.exit()
+	# Catch any other exceptions
 	except Exception as error:
 		Msg.err(f"An unexpected error has occured:\n{error}")
+	# Runs when program ends
 	finally:
 		# Write calendar to toml file
 		with open("calendar.toml", "w") as file:

@@ -23,6 +23,9 @@ def valid(v, mode):
 def time(stamp):
 	return datetime.strptime(stamp, "%H:%M")
 
+def date(str):
+	return datetime.strptime(str, "%d/%m/%Y")
+
 def truncate(n, places):
     return int(n * (10 ** places)) / 10 ** places
 

@@ -7,20 +7,12 @@ colour = 35
 [personal]
 colour = 34
 
-[birthdays.29772632]
-title = "Joost's Birthday"
-notes = "no ones coming :("
+[birthdays.24344797]
+title = "Teije's birthday"
+notes = "Happy Birthday!"
 location = "9403EW"
 date = "20/12/2022"
 from = "00:00"
-to = "00:00"
-
-[birthdays.24344797]
-title = "Teije's birthday"
-notes = "He gonna get some epic presents tho"
-location = "9403EW"
-date = "20/12/2022"
-from = "08:00"
 to = "00:00"
 
 [work.19249676]
