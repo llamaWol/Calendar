@@ -4,6 +4,9 @@ colour = 31
 [work]
 colour = 35
 
+[personal]
+colour = 34
+
 [birthdays.29772632]
 title = "Joost's Birthday"
 notes = "no ones coming :("
@@ -388,7 +391,7 @@ date = "15/07/2022"
 from = "14:00"
 to = "19:00"
 
-[work.11809484]
+[work.53874984]
 title = "Ekoplaza"
 notes = ""
 location = "9401HR"
@@ -459,3 +462,11 @@ location = "9401HR"
 date = "30/07/2022"
 from = "08:00"
 to = "17:00"
+
+[personal.96986224]
+title = "Pick Up Tesla"
+notes = ""
+location = ""
+date = "19/07/2022"
+from = "00:00"
+to = "00:00"
