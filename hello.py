@@ -335,4 +335,4 @@ if __name__ == '__main__':
 		with open("calendar.toml", "w") as file:
 			toml.dump(calendar, file)
 
-		Msg.suc("Succesfully ran this very awesome program :)")
+		Msg.suc("https://github.com/llamaWol/Calendar\n")
