@@ -1,3 +1,7 @@
+[locations]
+Ekoplaza = "9401HR"
+Home = "9403EW"
+
 [birthdays]
 colour = 31
 
@@ -455,10 +459,10 @@ date = "30/07/2022"
 from = "08:00"
 to = "17:00"
 
-[personal.96986224]
-title = "Pick Up Tesla"
+[work.16334817]
+title = "Ekoplaza"
 notes = ""
-location = ""
+location = "9401HR"
 date = "19/07/2022"
-from = "00:00"
-to = "00:00"
+from = "09:00"
+to = "18:00"

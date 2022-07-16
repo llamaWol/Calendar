@@ -5,6 +5,11 @@ import getch
 
 from datetime import datetime
 
+spaces = 4
+
+chindent = (spaces - 1) * " "
+indent = spaces * " "
+
 def valid(v, mode):
 	if mode == "time":
 		regex = r"^([01][0-9]|2[0-3]):([0-5][0-9])$"
@@ -20,37 +25,49 @@ def valid(v, mode):
 	else:
 		return False
 
+
 def time(stamp):
 	return datetime.strptime(stamp, "%H:%M")
+
 
 def date(str):
 	return datetime.strptime(str, "%d/%m/%Y")
 
-def truncate(n, places):
-    return int(n * (10 ** places)) / 10 ** places
+
+class Maths:
+	def salary(hours):
+		return Maths.truncate(hours * 3.9, 2)
+
+	def truncate(n, places):
+		return int(n * (10 ** places)) / 10 ** places
+
 
 class Msg:
-	def eprint(id, event, colour):
-		print(f"\n\033[1;{colour}m{event['title']} \033[0;{colour}m(\033[0m{id}\033[{colour}m)\033[0m")
+	def write(msg):
+		msg = msg.replace("\n", f"\n{indent}")
+		print(f"{indent}{msg}")
+	
+	def event(id, event, colour):
+		print(f"\n\033[1;{colour}m{indent}{event['title']} \033[0;{colour}m(\033[0m{id}\033[{colour}m)\033[0m")
 		if event["notes"] != "":
-			print(f"{event['notes']}")
+			print(f"{indent}{event['notes']}")
 		if event["location"] != "":
-			print(f"{event['location']}")
-		print(f"{event['from']} - {event['to']}")
+			print(f"{indent}{event['location']}")
+		print(f"{indent}{event['from']} - {event['to']}")
 
 	def err(msg):
-		msg = msg.replace("\n", "\n  ")
-		print(f'\n\033[31m✘\033[0m {msg}')
+		msg = msg.replace("\n", f"\n{indent}")
+		print(f"\n\033[31m✘\033[0m{chindent}{msg}")
 
 	def suc(msg):
-		msg = msg.replace("\n", "\n  ")
-		print(f'\n\033[32m✔\033[0m {msg}')
+		msg = msg.replace("\n", f"\n{indent}")
+		print(f"\n\033[32m✔\033[0m{chindent}{msg}")
 
 	def say(msg):
-		msg = msg.replace("\n", "\n  ")
-		print(f'\n\033[33m…\033[0m {msg}')
+		msg = msg.replace("\n", f"\n{indent}")
+		print(f"\n\033[33m…\033[0m{chindent}{msg}\n")
 
 	def ask(msg):
-		msg = msg.replace("\n", "\n  ")
-		res = input(f'\033[35m?\033[0m {msg}\n  ').strip()
+		msg = msg.replace("\n", f"\n{indent}")
+		res = input(f"\033[35m?\033[0m{chindent}{msg}\n{indent}").strip()
 		return res

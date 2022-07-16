@@ -5,13 +5,12 @@ import toml
 import uuid
 import getch
 
-from assistants import Msg, valid, time, date, truncate
+from assistants import Maths, Msg, valid, time, date
 
 from datetime import datetime, timedelta
 
 # Read existing events and locations from toml files
 calendar = toml.load("calendar.toml")
-locations = toml.load("locations.toml")
 
 datefmt = "%d/%m/%Y"
 
@@ -19,19 +18,22 @@ today = datetime.today()
 yesterday = today - timedelta(days=1)
 tomorrow = today + timedelta(days=1)
 
-def evnew(day, err = None):
+
+def evnew(day, err=None):
 	if err: Msg.err(err)
 
 	name = Msg.ask("What calendar does this event belong to?").lower()
-	if name == "": return evnew(day, "Give a calendar for the event")
+	if name == "":
+		return evnew(day, "Give a calendar for the event")
 
 	title = Msg.ask("What do you want to call this event?").title()
-	if title == "": return evnew(day, "Give the event a title")
+	if title == "":
+		return evnew(day, "Give the event a title")
 
 	notes = Msg.ask("Any comments?")
 
-	if title in locations:
-		location = locations[title]
+	if title in calendar["locations"]:
+		location = calendar["locations"][title]
 	else:
 		location = Msg.ask("Where does this event take place?")
 		if location != "":
@@ -39,10 +41,21 @@ def evnew(day, err = None):
 				return evnew(day, f"{location} is not a valid postal code")
 
 	starttime = Msg.ask("When does the event start?")
-	if not valid(starttime, "time"): return evnew(day, f"{starttime} is not a valid time")
+	if not valid(starttime, "time"):
+		return evnew(day, f"{starttime} is not a valid time")
 
 	endtime = Msg.ask("When does the event end?")
-	if not valid(endtime, "time"): return evnew(day, f"{endtime} is not a valid time")
+	if not valid(endtime, "time"):
+		return evnew(day, f"{endtime} is not a valid time")
+
+	for event in calendar[name]:
+		if not valid(event, "id"): continue
+		if calendar[name][event]["title"] == title and calendar[name][event]["notes"] == notes and calendar[name][event]["location"] == location and calendar[name][event]["date"] == day and calendar[name][event]["from"] == starttime and calendar[name][event]["to"] == endtime:
+			createanyway = Msg.ask("Event already exists, create anyway? [y/N]").lower()
+			if createanyway != "y":
+				return main(day)
+			else:
+				break
 
 	# Create event id
 	identifier = str(uuid.uuid4().fields[-1])[:8]
@@ -85,7 +98,25 @@ def evnew(day, err = None):
 		except KeyboardInterrupt:
 			sys.exit()
 
-def evedit(day):
+
+def evedit(day, err=None):
+	if err: Msg.err(err)
+
+	req = Msg.ask("What's the id of the event?")
+	if not valid(req, "id"):
+		return evedit(day, f"{req} is not a valid id")
+
+	found = False
+	for name in calendar:
+		if name == "locations": continue
+		for event in calendar[name]:
+			if event == req:
+				found = True
+				Msg.suc(f"Something with event from calendar. (id: {req})")
+				break
+
+	if not found:
+		return evedit(day, f"Couldn't find event with id {req}")
 
 	Msg.say("b - back   q - quit")
 	while True:
@@ -101,14 +132,17 @@ def evedit(day):
 		except KeyboardInterrupt:
 			sys.exit()
 
-def evremove(day, err = None):
+
+def evremove(day, err=None):
 	if err: Msg.err(err)
 
 	req = Msg.ask("What's the id of the event?")
-	if not valid(req, "id"): return evremove(day, f"{req} is not a valid id")
+	if not valid(req, "id"):
+		return evremove(day, f"{req} is not a valid id")
 
 	found = False
 	for name in calendar:
+		if name == "locations": continue
 		for event in calendar[name]:
 			if event == req:
 				del calendar[name][event]
@@ -116,7 +150,8 @@ def evremove(day, err = None):
 				Msg.suc(f"Removed event from calendar. (id: {req})")
 				break
 
-	if not found: return evremove(day, f"Couldn't find event with id {req}")
+	if not found:
+		return evremove(day, f"Couldn't find event with id {req}")
 
 	Msg.say("b - back   q - quit")
 	while True:
@@ -131,6 +166,7 @@ def evremove(day, err = None):
 		# Exit peacefully on KeyboardInterrupt
 		except KeyboardInterrupt:
 			sys.exit()
+
 
 def work(init):
 	day, month, year = init.split("/")
@@ -144,7 +180,7 @@ def work(init):
 			enddate = date(f"12/{endmonth}/{int(year) + 1}")
 	# If day is before 12, use current and last month
 	else:
-		startmonth = 12 if int(month) - 1 == 0 else int(month) - 1 
+		startmonth = 12 if int(month) - 1 == 0 else int(month) - 1
 		endmonth = int(month)
 		if endmonth == 1:
 			startdate = date(f"13/{startmonth}/{int(year) - 1}")
@@ -156,9 +192,9 @@ def work(init):
 		enddate = date(f"12/{endmonth}/{year}")
 
 	total = 0
-	days_worked = 0 
+	days_worked = 0
 	for event in calendar["work"]:
-		if event == "colour": continue
+		if not valid(event, "id"): continue
 		compare = date(calendar["work"][event]["date"])
 
 		if startdate <= compare <= enddate:
@@ -184,14 +220,14 @@ def work(init):
 
 			hrs, mins, _ = str(endtime - starttime - timedelta(minutes=breaks)).split(":")
 			# Convert minutes to decimal
-			mins = truncate(int(mins) * 0.01675, 2)
+			mins = Maths.truncate(int(mins) * 0.01675, 2)
 
-			print(f"{calendar['work'][event]['date']}\t\t-> {int(hrs) + mins}")
+			Msg.write(f"{calendar['work'][event]['date']}\t{int(hrs) + mins}\t{Maths.salary(int(hrs) + mins)}")
 			total += int(hrs) + mins
 
-	print(f"\nTotal amount of hours\t-> {total}")
-	print(f"Days worked\t\t-> {days_worked}")
-	print(f"Base salary\t\t-> {truncate(total * 3.9, 2)}")
+	Msg.write(f"\n{total}\thours worked")
+	Msg.write(f"{days_worked}\t\tdays worked")
+	Msg.write(f"€{Maths.salary(total)}\tbase salary")
 
 	Msg.say("b - back   q - quit")
 	while True:
@@ -207,28 +243,30 @@ def work(init):
 		except KeyboardInterrupt:
 			sys.exit()
 
+
 def main(day = None):
-	if not day:
-		day = today.strftime(datefmt)
+	if not day: day = today.strftime(datefmt)
 
-	dtobj = datetime.strptime(day, datefmt)
+	dtobj = date(day)
 
-	os.system('clear')
+	os.system('clear || cls')
 	# Print date of day you're viewing
-	print(f"\nDate \033[33m{day}\033[0m")
+	print(f"\n  Date \033[33m{day}\033[0m")
+	print(f"  Week \033[33m{dtobj.strftime('%W')}\033[0m")
+	print(f"  Day  \033[33m{dtobj.strftime('%A')}\033[0m")
 
 	something = False
 	for name in calendar:
+		if name == "locations": continue
 		colour = 32 if dtobj < yesterday else calendar[name]["colour"]
 		for event in calendar[name]:
-			if event == "colour": continue
+			if not valid(event, "id"): continue
 			if calendar[name][event]["date"] == day:
 				something = True
-				Msg.eprint(event, calendar[name][event], colour)
+				Msg.event(event, calendar[name][event], colour)
 
 	if colour != 32: colour = 0
-	if not something:
-		print(f"\n\033[{colour}mNothing happening this day")
+	if not something: Msg.write(f"\n\033[{colour}mNothing happening this day")
 
 	Msg.say("j - prev day   k - next day   g - go to day   t - today   n - new event   e - edit event   r - remove event   w - working hours   q - quit")
 	while True:
@@ -254,7 +292,7 @@ def main(day = None):
 					newday = tomorrow.strftime(datefmt)
 				# Otherwise check if given date is valid, or else exit
 				else:
-					if not valid(newday, "date"): 
+					if not valid(newday, "date"):
 						return main()
 
 				return main(newday)
@@ -280,6 +318,7 @@ def main(day = None):
 		# Exit peacefully on KeyboardInterrupt
 		except KeyboardInterrupt:
 			sys.exit()
+
 
 if __name__ == '__main__':
 	try:
