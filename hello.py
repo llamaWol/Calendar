@@ -38,19 +38,25 @@ def evnew(day, err=None):
 		location = Msg.ask("Where does this event take place?")
 		if location != "":
 			if not valid(location, "postal"):
-				return evnew(day, f"{location} is not a valid postal code")
+				return evnew(day, f"That's not a valid postal code")
 
 	starttime = Msg.ask("When does the event start?")
 	if not valid(starttime, "time"):
-		return evnew(day, f"{starttime} is not a valid time")
+		return evnew(day, f"That's not a valid time")
 
 	endtime = Msg.ask("When does the event end?")
 	if not valid(endtime, "time"):
-		return evnew(day, f"{endtime} is not a valid time")
+		return evnew(day, f"That's not a valid time")
 
 	for event in calendar[name]:
-		if not valid(event, "id"): continue
-		if calendar[name][event]["title"] == title and calendar[name][event]["notes"] == notes and calendar[name][event]["location"] == location and calendar[name][event]["date"] == day and calendar[name][event]["from"] == starttime and calendar[name][event]["to"] == endtime:
+		if (valid(event, "id") and
+			calendar[name][event]["title"] == title and 
+			calendar[name][event]["notes"] == notes and 
+			calendar[name][event]["location"] == location and 
+			calendar[name][event]["date"] == day and 
+			calendar[name][event]["from"] == starttime and 
+			calendar[name][event]["to"] == endtime):
+
 			createanyway = Msg.ask("Event already exists, create anyway? [y/N]").lower()
 			if createanyway != "y":
 				return main(day)
@@ -58,7 +64,13 @@ def evnew(day, err=None):
 				break
 
 	# Create event id
+	ids = []
+	[[ids.append(rid) for rid in v if valid(rid, "id")]
+		for (k, v) in calendar.items() if k != "locations"]
+
 	identifier = str(uuid.uuid4().fields[-1])[:8]
+	while identifier in ids:
+		identifier = str(uuid.uuid4().fields[-1])[:8]
 
 	# Create event, if calendar doesn't exist, create it as well
 	try:
@@ -72,7 +84,7 @@ def evnew(day, err=None):
 		}
 	except KeyError:
 		calendar[name] = {
-			"colour": 0
+			"colour": 33
 		}
 		calendar[name][identifier] = {
 			"title": title,
@@ -99,7 +111,7 @@ def evnew(day, err=None):
 			sys.exit()
 
 
-def evedit(day, err=None):
+def evedit(day, err = None):
 	if err: Msg.err(err)
 
 	req = Msg.ask("What's the id of the event?")
@@ -138,19 +150,16 @@ def evremove(day, err=None):
 
 	req = Msg.ask("What's the id of the event?")
 	if not valid(req, "id"):
-		return evremove(day, f"{req} is not a valid id")
+		return evremove(day, f"That's not a valid id")
 
 	found = False
-	for name in calendar:
-		if name == "locations": continue
-		for event in calendar[name]:
-			if event == req:
-				del calendar[name][event]
-				found = True
-				Msg.suc(f"Removed event from calendar. (id: {req})")
-				break
+	[[(data := (k, event), found := True) for event in v if valid(event, "id") and event == req]
+		for (k, v) in calendar.items() if k != "locations"]
 
-	if not found:
+	if found:
+		del calendar[data[0]][data[1]]
+		Msg.suc(f"Removed event from calendar. (id: {req})")
+	else:
 		return evremove(day, f"Couldn't find event with id {req}")
 
 	Msg.say("b - back   q - quit")
@@ -194,7 +203,8 @@ def work(init):
 	total = 0
 	days_worked = 0
 	for event in calendar["work"]:
-		if not valid(event, "id"): continue
+		if not valid(event, "id"): 
+			continue
 		compare = date(calendar["work"][event]["date"])
 
 		if startdate <= compare <= enddate:
@@ -257,16 +267,18 @@ def main(day = None):
 
 	something = False
 	for name in calendar:
-		if name == "locations": continue
-		colour = 32 if dtobj < yesterday else calendar[name]["colour"]
-		for event in calendar[name]:
-			if not valid(event, "id"): continue
-			if calendar[name][event]["date"] == day:
-				something = True
-				Msg.event(event, calendar[name][event], colour)
+		if name != "locations": 
+			colour = 32 if dtobj < yesterday else calendar[name]["colour"]
+			for event in calendar[name]:
+				if valid(event, "id") and calendar[name][event]["date"] == day: 
+					something = True
+					Msg.event(event, calendar[name][event], colour)
 
-	if colour != 32: colour = 0
-	if not something: Msg.write(f"\n\033[{colour}mNothing happening this day")
+
+	if colour != 32: 
+		colour = 0
+	if not something: 
+		Msg.write(f"\n\033[{colour}mNothing happening this day")
 
 	Msg.say("j - prev day   k - next day   g - go to day   t - today   n - new event   e - edit event   r - remove event   w - working hours   q - quit")
 	while True:
